@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import {Box, Container, Typography  } from "@mui/material";
 import { StyledButton, StyledSlider } from "../StyledElements";
 
-function Ratings({ text, nextPage, responses, setResponses }) {
+function Ratings({ nextPage, responses, setResponses }) {
     const [RT, setRT] = useState(0);
     const [slider, setSlider] = useState({
         value: 0,
@@ -54,14 +54,7 @@ function Ratings({ text, nextPage, responses, setResponses }) {
             <Container component="main" maxWidth="md" align="center">
 
                 <Typography variant="h5" padding="2%" marginTop="30px" align="left">
-                    Your interpretation: 
-                    <br /><br />
-                    {' '}
-                    <Box component="span" sx={{ fontStyle: 'italic', color: '#d32f2f' }}>
-                        {text}
-                    </Box>
-                    <br /> <br />
-                    Using the slider below, please rate how confident you are in this interpretation.
+                    Using the slider below, please rate how confident you are in your interpretation that you just provided.
                 </Typography>
 
                 <Container align="left">  

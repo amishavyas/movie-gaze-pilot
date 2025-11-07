@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import AudioInstructions from "./AudioInstructions";
 import Consent from "./Consent";
 import DemoSurvey from "./DemoSurvey";
 import TextResponse from "./TextResponse";
@@ -10,10 +11,9 @@ import { v4 as uuidv4 } from "uuid";
 // TASK = consent -> turn 1
 function Experiment() {
     const subID = useState(uuidv4());
-    const text = "What is your interpretation of the movie in your own words? Please use the text box below to enter your response in no more than a couple lines.";
+    const recallInstructions = "During this section, you will have three minutes to provide your interpretation of the video. What do you think the story is about? We are also interested in what you remember from the video.In your response, you can talk about characters, events, your opinions, and anything else that comes to mind. Try to fill the whole three minutes once the timer appears and remember - there are no wrong answers!";
     const [page, setPage] = useState(1);
     const [responses, setResponses] = useState([]);
-    const stimOrder = ["dominant", "bossy", "trustworthy", "happy"];
     const [demoData, setDemoData] = useState({
         age: "",
         education: "",
@@ -37,23 +37,28 @@ function Experiment() {
                 />;
             case 3:
                 return (
-                    <TextResponse
+                    <AudioInstructions
                         nextPage={nextPage}
-                        text={text}
-                        responses={responses}
-                        setResponses={setResponses}
                     />
                 );
             case 4:
                 return (
-                    <Ratings
+                    <TextResponse
                         nextPage={nextPage}
-                        text={responses[0]["interpretation"]}
+                        recallInstructions={recallInstructions}
                         responses={responses}
                         setResponses={setResponses}
                     />
                 );
             case 5:
+                return (
+                    <Ratings
+                        nextPage={nextPage}
+                        responses={responses}
+                        setResponses={setResponses}
+                    />
+                );
+            case 6:
                 return (
                     <DemoSurvey
                         nextPage={nextPage}
@@ -61,7 +66,7 @@ function Experiment() {
                         setDemoData={setDemoData}
                     />
                 );
-            case 6:
+            case 7:
                 return <Debrief />;
             default:
         }

@@ -87,10 +87,9 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
                 <Title text="DEMOGRAPHIC SURVEY" />
                 <br />
                 <Typography fontSize="21px">
-                    You have finished all the trials! <br />
+                    Thank you for your attention! <br />
                     <br />
-                    Please complete the following survey. You will be debriefed
-                    and receive your completion code on the next page.
+                    Please complete the following demographic survey. 
                 </Typography>
 
                 <br />
