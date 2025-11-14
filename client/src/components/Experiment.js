@@ -6,6 +6,7 @@ import TextResponse from "./TextResponse";
 import Ratings from "./Ratings";
 import Debrief from "./Debrief";
 import FullscreenVideoPlayer from "./Video";
+import BaselineSurvey from "./BaselineSurvey";
 import { v4 as uuidv4 } from "uuid";
 
 // TASK = consent -> turn 1
@@ -28,8 +29,15 @@ function Experiment() {
     const conditionalComponent = () => {
         switch (page) {
             case 1:
-                return <Consent nextPage={nextPage} />;
+                return <BaselineSurvey
+                    surveyURL="https://cumc.co1.qualtrics.com/jfe/form/SV_8xkcx3bGu8vwbbM" 
+                    participantID={100}
+                    nextPage={nextPage}
+                />;
+
             case 2:
+                return <Consent nextPage={nextPage} />;
+            case 3:
                 return <FullscreenVideoPlayer
                     nextPage={nextPage}
                     videoUrl="./movie.mp4"

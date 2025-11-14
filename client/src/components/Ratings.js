@@ -1,36 +1,23 @@
 import React, { useState } from "react";
-import {Box, Container, Typography  } from "@mui/material";
+import { Container, Typography, Box } from "@mui/material";
 import { StyledButton, StyledSlider } from "../StyledElements";
 
 function Ratings({ nextPage, responses, setResponses }) {
     const [RT, setRT] = useState(0);
-    const [slider, setSlider] = useState({
-        value: 0,
-        moved: false,
-    });
+    const [slider, setSlider] = useState({ value: 0, moved: false });
 
     const setTrial = () => {
-        /* Resetting states (RT, new stim, slider values) for the new trial */
         setRT(Date.now());
- 
         setSlider({ value: 0, moved: false });
     };
 
     const nextTrial = () => {
-        /*
-            Record responses and move to the next trial only if the ratings slider has been moved
-            If not, display an alert 
-        */
         if (slider.moved) {
             setResponses([
                 ...responses,
-                {
-                    rating: slider.value,
-                    RT: Date.now() - RT,
-                },
+                { rating: slider.value, RT: Date.now() - RT },
             ]);
-            nextPage(); 
-            
+            nextPage();
         } else {
             alert(
                 "Please move the slider from its default position to continue, even if your response is 0."
@@ -39,37 +26,51 @@ function Ratings({ nextPage, responses, setResponses }) {
     };
 
     const handleSlider = (e, newValue) => {
-        /* 
-            Record new slider value and that it has been interacted with
-            Users cannot proceed to the next trial without moving the slider
-            from its default position 
-        */
         setSlider({ value: newValue, moved: true });
     };
- 
 
     return (
-        <div>
-             
-            <Container component="main" maxWidth="md" align="center">
+        <Box
+            sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "flex-start", // top-aligned, not forced center
+                minHeight: "100vh",
+                paddingTop: "10vh", // pushes content down ~10% of viewport height
+            }}
+        >
 
-                <Typography variant="h5" padding="2%" marginTop="30px" align="left">
-                    Using the slider below, please rate how confident you are in your interpretation that you just provided.
+            <Container
+                component="main"
+                maxWidth="md"
+                align="center"
+                sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    textAlign: "center",
+                }}
+            >
+                <Typography
+                    variant="h5"
+                    sx={{ padding: "2%", marginBottom: "40px", textAlign: "center" }}
+                >
+                    Using the slider below, please rate how confident you are in your
+                    interpretation that you just provided.
                 </Typography>
 
-                <Container align="left">  
-                    <StyledSlider
-                        value={slider.value}
-                        onChange={handleSlider}
-                        min={-50}
-                        max={50}
-                        style={{ marginTop: "20px" }}
-                        />
-                </Container>  
+                <StyledSlider
+                    value={slider.value}
+                    onChange={handleSlider}
+                    min={-50}
+                    max={50}
+                    sx={{ width: "80%", marginBottom: "40px" }}
+                />
 
                 <StyledButton handleClick={nextTrial} text="Next" />
             </Container>
-        </div>
+        </Box>
     );
 }
 

@@ -10,62 +10,72 @@ function MicIconSVG() {
     );
 }
 
-function TextResponse({ recallInstructions, nextPage, responses, setResponses }) {
+export default function TextResponse({ nextPage, setResponses }) {
     const [recording, setRecording] = useState(false);
     const [progress, setProgress] = useState(0);
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const animationRef = useRef(null);
-    const RECORD_DURATION = 180; // 3 minutes
+    const RECORD_DURATION = 180;
 
     const handleStart = async () => {
-        if (recording) return; // Prevent double start
+        if (recording) return;
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
+            const options = { mimeType: "audio/webm;codecs=opus" };
+            const mediaRecorder = new MediaRecorder(stream, options);
             mediaRecorderRef.current = mediaRecorder;
             chunksRef.current = [];
 
-            mediaRecorder.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunksRef.current.push(e.data);
+            };
 
             mediaRecorder.onstop = async () => {
-                const blob = new Blob(chunksRef.current, { type: "audio/webm" });
                 stream.getTracks().forEach((t) => t.stop());
                 setRecording(false);
 
-                // Convert to WAV
+                const blob = new Blob(chunksRef.current, { type: "audio/webm" });
                 const arrayBuffer = await blob.arrayBuffer();
-                const audioCtx = new AudioContext();
+
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+                if (audioBuffer.length === 0) {
+                    alert("No audio detected — try again or check microphone permissions.");
+                    return;
+                }
+
+                // Take only the first channel (mono)
+                const channelData = audioBuffer.getChannelData(0);
+
+                // Convert Float32 → Int16 PCM samples
+                const int16Data = new Int16Array(channelData.length);
+                for (let i = 0; i < channelData.length; i++) {
+                    int16Data[i] = Math.max(-1, Math.min(1, channelData[i])) * 0x7fff;
+                }
+
+                // Create proper mono WAV
                 const wav = new WaveFile();
-                wav.fromScratch(
-                    audioBuffer.numberOfChannels,
-                    audioBuffer.sampleRate,
-                    "16",
-                    audioBuffer.getChannelData(0)
-                );
+                wav.fromScratch(1, audioBuffer.sampleRate, "16", int16Data);
                 const wavBlob = new Blob([wav.toBuffer()], { type: "audio/wav" });
 
-                // Download locally
+                // Download
                 const url = URL.createObjectURL(wavBlob);
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = "participant_recording.wav";
                 a.click();
-                a.remove();
                 URL.revokeObjectURL(url);
 
-                // Store and advance
                 setResponses((prev) => [...prev, { audio: wavBlob }]);
                 nextPage();
             };
 
-            // Start recording
             mediaRecorder.start();
             setRecording(true);
 
-            // Smooth progress animation
             const startTime = Date.now();
             const animate = () => {
                 const elapsed = (Date.now() - startTime) / 1000;
@@ -77,8 +87,9 @@ function TextResponse({ recallInstructions, nextPage, responses, setResponses })
                 }
             };
             animationRef.current = requestAnimationFrame(animate);
-        } catch {
+        } catch (err) {
             alert("Microphone access denied or unavailable.");
+            console.error(err);
         }
     };
 
@@ -86,11 +97,14 @@ function TextResponse({ recallInstructions, nextPage, responses, setResponses })
 
     return (
         <Container component="main" maxWidth="md" align="center">
-            <Typography variant="h5" padding="3%" marginTop="30px" align="left">
-                
-                What do you think the story is about? We are also interested in what you remember from the video. In your response, you can talk about characters, events, your opinions, and anything else that comes to mind. 
-                Try to fill the whole three minutes once the timer appears and remember - there are no wrong answers! <br /><br />
-                Press the gray button when you are ready to start speaking.  
+            <Typography component="h2" variant="h6" align="left">
+                <br />
+                <br />
+                What do you think the story is about? We are also interested in what you remember from the video. In your response, you can talk about characters, events, your opinions, and anything else that comes to mind.
+                Try to fill the whole three minutes - there are no wrong answers!
+                <br />
+                <br />
+                When you’re ready, press the gray button below. The button will turn red while recording, and the progress bar will fill as time passes. Recording will stop automatically when the bar is full.
             </Typography>
 
             <Box sx={{ marginTop: "50px" }}>
@@ -101,7 +115,6 @@ function TextResponse({ recallInstructions, nextPage, responses, setResponses })
                         width: 100,
                         height: 100,
                         borderRadius: "50%",
-                        transition: "background-color 0.3s ease",
                         "&:hover": { backgroundColor: recording ? "#b71c1c" : "#757575" },
                     }}
                 >
@@ -127,5 +140,3 @@ function TextResponse({ recallInstructions, nextPage, responses, setResponses })
         </Container>
     );
 }
-
-export default TextResponse;
