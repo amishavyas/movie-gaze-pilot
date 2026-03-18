@@ -10,7 +10,7 @@ function MicIconSVG() {
     );
 }
 
-export default function TextResponse({ nextPage, setResponses }) {
+export default function AudioResponse({ nextPage, setResponses }) {
     const [recording, setRecording] = useState(false);
     const [progress, setProgress] = useState(0);
     const mediaRecorderRef = useRef(null);

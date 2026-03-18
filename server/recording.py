@@ -1,244 +1,254 @@
-"""
-recording.py — Controls eyetracker and OBS screen recording synchronization.
-
-Workflow:
-1. Start eyetracker first.
-2. Then start OBS + video playback simultaneously.
-3. Ensure OBS runs slightly longer than the video.
-4. Record start and end events aligned to eyetracker time.
-"""
-
 import asyncio
+import inspect
 import logging
-import os
-import platform
-import time
 import subprocess
-import numpy as np
-import simpleobsws
+import time
 from pathlib import Path
 
-from pupil_labs.realtime_api import Device, Network, StatusUpdateNotifier
-from pupil_labs.realtime_api.models import Recording
-from pupil_labs.realtime_api.time_echo import TimeOffsetEstimator
-from rich.logging import RichHandler
+import simpleobsws
+from pupil_labs.realtime_api.simple import discover_devices
 
+EXPECTED_PHONE_NAME = "THEIA"
 
-# ---------------------------------------------------------------------
-# Logging configuration (console + file)
-# ---------------------------------------------------------------------
-DOCS_LOG_DIR = Path.home() / "Documents" / "experiment_logs"
-DOCS_LOG_DIR.mkdir(parents=True, exist_ok=True)
-timestamp = time.strftime("%Y%m%d_%H%M%S")
-LOG_PATH = DOCS_LOG_DIR / f"session_{timestamp}.log"
+OBS_WS_URL = "ws://localhost:4455/"
+OBS_WS_PASSWORD = "Lm2SUK7JNbcMWCAI"
+
+LOG_DIR = Path.home() / "Documents" / "experiment_logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
-    format="%(message)s",
     level=logging.INFO,
-    datefmt="[%X]",
-    handlers=[RichHandler()],
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.FileHandler(
+            LOG_DIR / f"session_{time.strftime('%Y%m%d_%H%M%S')}.log"),
+        logging.StreamHandler(),
+    ],
 )
 logger = logging.getLogger(__name__)
 
-file_handler = logging.FileHandler(LOG_PATH)
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(
-    logging.Formatter(
-        "%(asctime)s — %(levelname)s — %(message)s", "%Y-%m-%d %H:%M:%S")
-)
-logger.addHandler(file_handler)
-logger.info(f"Session logs will be saved to: {LOG_PATH}")
+state = {
+    "device": None,
+    "phone_name": None,
+    "ip": None,
+    "running": False,
+}
 
 
-# ---------------------------------------------------------------------
-# Helper callback
-# ---------------------------------------------------------------------
-async def _log_recording_update(component):
-    if isinstance(component, Recording):
-        logger.info(f"Recording update: {component.message}")
+def find_tracker(timeout=10.0):
+    print("Searching for devices...", flush=True)
 
+    devices = discover_devices(search_duration_seconds=timeout)
+    found = []
 
-# ---------------------------------------------------------------------
-# Start eyetracker + OBS recording
-# ---------------------------------------------------------------------
-async def main():
-    """Start eyetracker first, then OBS recording and video playback."""
-
-    # Discover device
-    async with Network() as network:
-        device_info = await network.wait_for_new_device(timeout_seconds=5)
-
-    if device_info is None:
-        logger.error("No Pupil Labs device detected.")
-        return {"status": "error", "message": "No device found"}
-
-    async with Device.from_discovered_device(device_info) as device:
-        status = await device.get_status()
-        logger.info(f"Connected to eyetracker at {status.phone.ip}")
-        logger.info(
-            f"Battery: {status.phone.battery_level}% | Glasses SN: {status.hardware.glasses_serial}")
-
-        # Estimate offset between host and eyetracker clocks
-        offset_estimator = TimeOffsetEstimator(
-            status.phone.ip, status.phone.time_echo_port)
-        offset_result = await offset_estimator.estimate()
-        offset_ns = offset_result.time_offset_ms.mean * 1e6
-        logger.info(
-            f"Estimated time offset: {offset_result.time_offset_ms.mean:.3f} ms")
-
-        # Start eyetracker recording first
-        notifier = StatusUpdateNotifier(
-            device, callbacks=[_log_recording_update])
-        await notifier.receive_updates_start()
-        recording_id = await device.recording_start()
-        logger.info(f"Eyetracker recording started (ID: {recording_id})")
-
-        # Allow eyetracker to stabilize before OBS/video
-        await asyncio.sleep(2)
-
-        # Launch OBS
+    for device in devices:
         try:
-            if platform.system() == "Windows":
-                obs_command = ["start", "OBS.exe"]
-            elif platform.system() == "Darwin":
-                obs_command = ["open", "-a", "OBS.app"]
-            else:
-                obs_command = ["obs"]
+            phone_name = device.phone_name
+            ip = device.phone_ip
 
-            logger.info(f"Launching OBS: {' '.join(obs_command)}")
-            subprocess.Popen(" ".join(obs_command), shell=True)
-        except Exception as e:
-            logger.error(f"Unable to launch OBS: {e}")
-            return {"status": "error", "message": str(e)}
+            print(f"[DISCOVERED] phone={phone_name} | ip={ip}", flush=True)
+            found.append({"phone_name": phone_name, "ip": ip})
 
-        await asyncio.sleep(5)  # allow OBS to initialize
+            if phone_name == EXPECTED_PHONE_NAME:
+                print(f"[MATCH] using tracker {phone_name}", flush=True)
+                return {
+                    "device": device,
+                    "phone_name": phone_name,
+                    "ip": ip,
+                    "found": found,
+                }
 
-        # Connect to OBS websocket
-        parameters = simpleobsws.IdentificationParameters(
-            ignoreNonFatalRequestChecks=False)
-        ws = simpleobsws.WebSocketClient(
-            url="ws://localhost:4455/",
-            password="theiaeyetracker",
-            identification_parameters=parameters,
-        )
-
-        try:
-            await ws.connect()
-            await ws.wait_until_identified()
-            logger.info("Connected to OBS WebSocket")
-
-            # Start OBS recording
-            before = time.time_ns()
-            response = await ws.call(simpleobsws.Request("StartRecord"))
-            after = time.time_ns()
-
-            if response.ok():
-                logger.info("OBS recording started.")
-                await device.send_event(
-                    "start.video",
-                    event_timestamp_unix_ns=np.mean(
-                        [before, after]) - offset_ns,
-                )
-            else:
-                logger.warning(
-                    f"OBS failed to start recording: {response.responseData}")
-
-            logger.info("Recording in progress...")
-            return {"status": "started", "recording_id": recording_id}
+            device.close()
 
         except Exception as e:
-            logger.error(f"OBS connection error: {e}")
-            return {"status": "error", "message": str(e)}
+            logger.warning(f"Could not inspect device: {e}")
 
-        finally:
-            try:
-                await ws.disconnect()
-                logger.info("Disconnected from OBS WebSocket.")
-            except Exception:
-                pass
+    return {
+        "device": None,
+        "phone_name": None,
+        "ip": None,
+        "found": found,
+    }
 
 
-# ---------------------------------------------------------------------
-# Stop both OBS and eyetracker recordings
-# ---------------------------------------------------------------------
-async def stop_recording():
-    """Stop OBS recording after short buffer, then end eyetracker session."""
+def launch_obs():
+    subprocess.Popen(["open", "-a", "OBS"])
+
+
+async def _obs_request(request_name):
+    print("Connecting to OBS...", flush=True)
+
+    params = simpleobsws.IdentificationParameters(
+        ignoreNonFatalRequestChecks=False)
+    ws = simpleobsws.WebSocketClient(
+        url=OBS_WS_URL,
+        password=OBS_WS_PASSWORD,
+        identification_parameters=params,
+    )
+
+    await ws.connect()
+    await ws.wait_until_identified()
+    print("OBS connected", flush=True)
 
     try:
-        # Reconnect to device
-        async with Network() as network:
-            device_info = await network.wait_for_new_device(timeout_seconds=5)
-        if device_info is None:
-            logger.error("No device detected during stop phase.")
-            return {"status": "error", "message": "No device found"}
-
-        async with Device.from_discovered_device(device_info) as device:
-            status = await device.get_status()
-            offset_estimator = TimeOffsetEstimator(
-                status.phone.ip, status.phone.time_echo_port)
-            offset_result = await offset_estimator.estimate()
-            offset_ns = offset_result.time_offset_ms.mean * 1e6
-
-            # Connect to OBS
-            parameters = simpleobsws.IdentificationParameters(
-                ignoreNonFatalRequestChecks=False)
-            ws = simpleobsws.WebSocketClient(
-                url="ws://localhost:4455/",
-                password="theiaeyetracker",
-                identification_parameters=parameters,
-            )
-
-            await ws.connect()
-            await ws.wait_until_identified()
-
-            # Wait 2s after video ends to ensure full capture
-            await asyncio.sleep(2)
-
-            before = time.time_ns()
-            response = await ws.call(simpleobsws.Request("StopRecord"))
-            after = time.time_ns()
-
-            if response.ok():
-                logger.info("OBS recording stopped.")
-                await device.send_event(
-                    "end.video",
-                    event_timestamp_unix_ns=np.mean(
-                        [before, after]) - offset_ns,
-                )
-                await device.recording_stop()
-                logger.info("Eyetracker recording stopped.")
-            else:
-                logger.warning(
-                    f"OBS failed to stop recording: {response.responseData}")
-
+        response = await ws.call(simpleobsws.Request(request_name))
+        print(
+            f"[OBS] {request_name} ok={response.ok()} data={response.responseData}", flush=True)
+        return response.ok(), response.responseData
+    finally:
+        try:
             await ws.disconnect()
-            return {"status": "stopped"}
-
-    except Exception as e:
-        logger.error(f"Error while stopping recording: {e}")
-        return {"status": "error", "message": str(e)}
+        except Exception:
+            pass
 
 
-# ---------------------------------------------------------------------
-# Entry points for Flask integration
-# ---------------------------------------------------------------------
-def execute_script():
-    """Entry point for /start_recordings"""
+def _maybe_await(result):
+    if inspect.isawaitable(result):
+        return asyncio.run(result)
+    return result
+
+
+def check_tracker():
+    result = find_tracker()
+
+    if result["device"] is None:
+        return {
+            "status": "error",
+            "expected_phone_name": EXPECTED_PHONE_NAME,
+            "connected_phone_name": None,
+            "tracker_ip": None,
+            "matches_expected": False,
+            "found_devices": result["found"],
+        }
+
     try:
-        return asyncio.run(main())
-    except Exception as e:
-        logger.error(f"Error running start script: {e}")
-        return {"status": "error", "message": str(e)}
+        result["device"].close()
+    except Exception:
+        pass
+
+    return {
+        "status": "ok",
+        "expected_phone_name": EXPECTED_PHONE_NAME,
+        "connected_phone_name": result["phone_name"],
+        "tracker_ip": result["ip"],
+        "matches_expected": True,
+        "found_devices": result["found"],
+    }
+
+
+def connect_tracker():
+    if state["device"] is not None:
+        return {
+            "status": "already_connected",
+            "connected_phone_name": state["phone_name"],
+            "tracker_ip": state["ip"],
+        }
+
+    result = find_tracker()
+
+    if result["device"] is None:
+        print(
+            f"[CONNECT] tracker not found | expected={EXPECTED_PHONE_NAME}", flush=True)
+        print(f"[CONNECT] found devices={result['found']}", flush=True)
+        return {
+            "status": "error",
+            "message": "Expected tracker not found",
+            "expected_phone_name": EXPECTED_PHONE_NAME,
+            "found_devices": result["found"],
+        }
+
+    state["device"] = result["device"]
+    state["phone_name"] = result["phone_name"]
+    state["ip"] = result["ip"]
+
+    print(
+        f"[CONNECT] connected tracker | phone={state['phone_name']} | ip={state['ip']}",
+        flush=True,
+    )
+
+    return {
+        "status": "connected",
+        "connected_phone_name": state["phone_name"],
+        "tracker_ip": state["ip"],
+    }
+
+
+def start_obs_recording():
+    if state["running"]:
+        return {
+            "status": "already_running",
+            "connected_phone_name": state["phone_name"],
+            "tracker_ip": state["ip"],
+        }
+
+    if state["device"] is None:
+        return {"status": "error", "message": "No connected tracker"}
+
+    launch_obs()
+    time.sleep(8)
+
+    ok, data = asyncio.run(_obs_request("StartRecord"))
+    if not ok:
+        return {
+            "status": "error",
+            "message": f"OBS failed to start: {data}",
+        }
+
+    state["running"] = True
+    return {
+        "status": "started",
+        "connected_phone_name": state["phone_name"],
+        "tracker_ip": state["ip"],
+    }
+
+
+def send_event_marker(name):
+    print(
+        f"[MARKER] device={state['device'] is not None} | "
+        f"phone={state['phone_name']} | "
+        f"ip={state['ip']}",
+        flush=True,
+    )
+
+    if state["device"] is None:
+        return {"status": "error", "message": "No active tracker session"}
+
+    if not hasattr(state["device"], "send_event"):
+        print(
+            f"[MARKER] send_event() not available; skipping {name}", flush=True)
+        return {"status": "ok", "event": name, "warning": "send_event not available"}
+
+    result = state["device"].send_event(
+        name,
+        event_timestamp_unix_ns=time.time_ns(),
+    )
+    _maybe_await(result)
+
+    print(f"[MARKER] sent {name}", flush=True)
+    return {"status": "ok", "event": name}
 
 
 def stop_script():
-    """Entry point for /stop_recordings"""
-    try:
-        return asyncio.run(stop_recording())
-    except Exception as e:
-        logger.error(f"Error running stop script: {e}")
-        return {"status": "error", "message": str(e)}
+    if state["running"]:
+        ok, data = asyncio.run(_obs_request("StopRecord"))
+        if not ok:
+            logger.warning(f"OBS stop failed: {data}")
 
+    if state["device"] is not None:
+        try:
+            state["device"].close()
+        except Exception:
+            pass
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    result = {
+        "status": "stopped",
+        "connected_phone_name": state["phone_name"],
+        "tracker_ip": state["ip"],
+    }
+
+    state["device"] = None
+    state["phone_name"] = None
+    state["ip"] = None
+    state["running"] = False
+
+    return result

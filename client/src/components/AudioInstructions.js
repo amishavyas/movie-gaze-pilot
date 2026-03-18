@@ -29,25 +29,26 @@ const AudioInstructions = ({ nextPage }) => {
                     component="h2"
                     variant="h6"
                     sx={{
-                        textAlign: "center",
+                        textAlign: "left",
                         marginBottom: "40px",
                         lineHeight: 1.6,
                     }}
                 >
-                    Thanks for your attention while watching the video! <br />
-                    <br />
+                
                     For the next section, we are interested in learning what you thought
-                    of the video. You will be recording yourself speak and will have three
-                    minutes to provide your interpretation of the video. <br />
+                    about the video. <strong><br /> You will be recording yourself speak and will have three
+                        minutes to provide your interpretation of the video. </strong> <br />
                     <br />
                     Specifically, we want to know:
                     <br />
                     <br />
+                    <strong> 
                     What do you think the story is about? We are also interested in what
                     you remember from the video. In your response, you can talk about
                     characters, events, your opinions, and anything else that comes to
                     mind. Try to fill the whole three minutes and remember — there are no
-                    wrong answers!
+                        wrong answers!
+                    </strong>
                     <br />
                     <br />
                     You will be able to see the above prompt on the recording page. When
