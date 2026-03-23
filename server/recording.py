@@ -21,7 +21,8 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(message)s",
     handlers=[
         logging.FileHandler(
-            LOG_DIR / f"session_{time.strftime('%Y%m%d_%H%M%S')}.log"),
+            LOG_DIR / f"session_{time.strftime('%Y%m%d_%H%M%S')}.log"
+        ),
         logging.StreamHandler(),
     ],
 )
@@ -79,7 +80,8 @@ async def _obs_request(request_name):
     print("Connecting to OBS...", flush=True)
 
     params = simpleobsws.IdentificationParameters(
-        ignoreNonFatalRequestChecks=False)
+        ignoreNonFatalRequestChecks=False
+    )
     ws = simpleobsws.WebSocketClient(
         url=OBS_WS_URL,
         password=OBS_WS_PASSWORD,
@@ -93,7 +95,9 @@ async def _obs_request(request_name):
     try:
         response = await ws.call(simpleobsws.Request(request_name))
         print(
-            f"[OBS] {request_name} ok={response.ok()} data={response.responseData}", flush=True)
+            f"[OBS] {request_name} ok={response.ok()} data={response.responseData}",
+            flush=True,
+        )
         return response.ok(), response.responseData
     finally:
         try:
@@ -106,6 +110,32 @@ def _maybe_await(result):
     if inspect.isawaitable(result):
         return asyncio.run(result)
     return result
+
+
+def _call_device_method(device, method_name, *args, **kwargs):
+    """
+    Safely call a tracker device method if it exists.
+    Supports sync and async methods.
+    """
+    method = getattr(device, method_name, None)
+    if method is None:
+        return {
+            "ok": False,
+            "message": f"{method_name} not available on device",
+        }
+
+    try:
+        result = method(*args, **kwargs)
+        _maybe_await(result)
+        return {
+            "ok": True,
+            "message": f"{method_name} succeeded",
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "message": f"{method_name} failed: {e}",
+        }
 
 
 def check_tracker():
@@ -148,7 +178,9 @@ def connect_tracker():
 
     if result["device"] is None:
         print(
-            f"[CONNECT] tracker not found | expected={EXPECTED_PHONE_NAME}", flush=True)
+            f"[CONNECT] tracker not found | expected={EXPECTED_PHONE_NAME}",
+            flush=True,
+        )
         print(f"[CONNECT] found devices={result['found']}", flush=True)
         return {
             "status": "error",
@@ -173,7 +205,64 @@ def connect_tracker():
     }
 
 
+def start_tracker_recording():
+    if state["device"] is None:
+        return {"status": "error", "message": "No connected tracker"}
+
+    # Try a few likely method names depending on SDK version.
+    for method_name in ["recording_start", "start_recording"]:
+        result = _call_device_method(state["device"], method_name)
+        if result["ok"]:
+            print(f"[TRACKER] {method_name} succeeded", flush=True)
+            return {
+                "status": "started",
+                "connected_phone_name": state["phone_name"],
+                "tracker_ip": state["ip"],
+                "method": method_name,
+            }
+
+    return {
+        "status": "error",
+        "message": "No supported tracker start-recording method found",
+    }
+
+
+def stop_tracker_recording():
+    if state["device"] is None:
+        return {"status": "error", "message": "No connected tracker"}
+
+    for method_name in ["recording_stop", "stop_recording"]:
+        result = _call_device_method(state["device"], method_name)
+        if result["ok"]:
+            print(f"[TRACKER] {method_name} succeeded", flush=True)
+            return {
+                "status": "stopped",
+                "connected_phone_name": state["phone_name"],
+                "tracker_ip": state["ip"],
+                "method": method_name,
+            }
+
+    return {
+        "status": "error",
+        "message": "No supported tracker stop-recording method found",
+    }
+
+
 def start_obs_recording():
+    launch_obs()
+    time.sleep(8)
+
+    ok, data = asyncio.run(_obs_request("StartRecord"))
+    if not ok:
+        return {
+            "status": "error",
+            "message": f"OBS failed to start: {data}",
+        }
+
+    return {"status": "started"}
+
+
+def start_all_recordings():
     if state["running"]:
         return {
             "status": "already_running",
@@ -184,15 +273,21 @@ def start_obs_recording():
     if state["device"] is None:
         return {"status": "error", "message": "No connected tracker"}
 
-    launch_obs()
-    time.sleep(8)
-
-    ok, data = asyncio.run(_obs_request("StartRecord"))
-    if not ok:
+    tracker_result = start_tracker_recording()
+    if tracker_result["status"] == "error":
         return {
             "status": "error",
-            "message": f"OBS failed to start: {data}",
+            "message": f"Tracker failed to start: {tracker_result['message']}",
         }
+
+    obs_result = start_obs_recording()
+    if obs_result["status"] == "error":
+        # Best effort rollback
+        try:
+            stop_tracker_recording()
+        except Exception:
+            pass
+        return obs_result
 
     state["running"] = True
     return {
@@ -216,7 +311,11 @@ def send_event_marker(name):
     if not hasattr(state["device"], "send_event"):
         print(
             f"[MARKER] send_event() not available; skipping {name}", flush=True)
-        return {"status": "ok", "event": name, "warning": "send_event not available"}
+        return {
+            "status": "ok",
+            "event": name,
+            "warning": "send_event not available",
+        }
 
     result = state["device"].send_event(
         name,
@@ -229,10 +328,20 @@ def send_event_marker(name):
 
 
 def stop_script():
+    tracker_stop_result = None
+
     if state["running"]:
-        ok, data = asyncio.run(_obs_request("StopRecord"))
-        if not ok:
-            logger.warning(f"OBS stop failed: {data}")
+        try:
+            tracker_stop_result = stop_tracker_recording()
+        except Exception as e:
+            logger.warning(f"Tracker stop failed: {e}")
+
+        try:
+            ok, data = asyncio.run(_obs_request("StopRecord"))
+            if not ok:
+                logger.warning(f"OBS stop failed: {data}")
+        except Exception as e:
+            logger.warning(f"OBS stop request failed: {e}")
 
     if state["device"] is not None:
         try:
@@ -244,6 +353,7 @@ def stop_script():
         "status": "stopped",
         "connected_phone_name": state["phone_name"],
         "tracker_ip": state["ip"],
+        "tracker_stop_result": tracker_stop_result,
     }
 
     state["device"] = None

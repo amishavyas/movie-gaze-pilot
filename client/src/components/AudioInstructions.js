@@ -35,8 +35,8 @@ const AudioInstructions = ({ nextPage }) => {
                     }}
                 >
                 
-                    For the next section, we are interested in learning what you thought
-                    about the video. <strong><br /> You will be recording yourself speak and will have three
+                    We are interested in learning what you thought
+                    about the video. <strong> For the next part, you will be recording yourself speak and will have three
                         minutes to provide your interpretation of the video. </strong> <br />
                     <br />
                     Specifically, we want to know:
@@ -52,15 +52,15 @@ const AudioInstructions = ({ nextPage }) => {
                     <br />
                     <br />
                     You will be able to see the above prompt on the recording page. When
-                    you’re ready to start speaking, press the gray button to begin
-                    recording. The progress bar will show your time remaining.
+                    you’re ready to start speaking, press the mic button to begin
+                    recording. A progress bar will show how much time you have left.
                     <br />
                     <br />
                     Press the <strong>Next</strong> button to continue to the recording
                     page.
                 </Typography>
 
-                <StyledButton handleClick={nextPage} text="Next" />
+                <StyledButton handleClick={nextPage} text="Next" buttonColor="#E4C988" />
             </Container>
         </Box>
     );

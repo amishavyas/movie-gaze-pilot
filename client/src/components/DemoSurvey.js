@@ -6,10 +6,9 @@ import {
     RadioGroup,
     Radio,
     FormGroup,
-    FormControlLabel,
-    TextField,
+    FormControlLabel
 } from "@mui/material";
-import { Logos, StyledButton, Title } from "../StyledElements";
+import { Logos, StyledButton, Title, StyledTextField } from "../StyledElements";
 
 const raceLabels = [
     "American Indian or Alaska Native",
@@ -48,7 +47,7 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
             nextPage();
         }
     };
-
+ 
     const validateResponses = () => {
         for (const value in demoData) {
             if (demoData[value] === "" || demoData[value].length === 0) {
@@ -96,14 +95,10 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
 
                 <Typography align="left" component="h1" variant="h6">
                     <strong> Please enter your age</strong>
-                    <TextField
-                        label=""
-                        placeholder="Age"
+                    <StyledTextField
+                        value={demoData.age}
                         type="number"
-                        InputProps={{ style: { fontSize: 19 } }}
-                        variant="standard"
-                        color="success"
-                        fullWidth
+                        placeholder="Age"
                         onChange={(e) =>
                             setDemoData({ ...demoData, age: e.target.value })
                         }
@@ -122,7 +117,14 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
                             <FormControlLabel
                                 value={gender}
                                 key={index}
-                                control={<Radio color="success" />}
+                                control={<Radio
+                                    sx={{
+                                         
+                                        "&.Mui-checked": {
+                                            color: "#275585",
+                                        },
+                                    }}
+                                />}
                                 label={
                                     <Typography style={{ fontSize: "19px" }}>
                                         {" "}
@@ -145,7 +147,14 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
                             <FormControlLabel
                                 value={sex}
                                 key={index}
-                                control={<Radio color="success" />}
+                                control={<Radio
+                                    sx={{
+                                         
+                                        "&.Mui-checked": {
+                                            color: "#275585",
+                                        },
+                                    }}
+                                /> }
                                 label={
                                     <Typography style={{ fontSize: "19px" }}>
                                         {" "}
@@ -164,7 +173,14 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
                             <FormControlLabel
                                 value={race}
                                 key={index}
-                                control={<Checkbox color="success" />}
+                                control={<Checkbox
+                                    sx={{
+                                        
+                                        "&.Mui-checked": {
+                                            color: "#275585",
+                                        },
+                                    }}
+                                />}
                                 label={
                                     <Typography style={{ fontSize: "19px" }}>
                                         {race}
@@ -187,7 +203,14 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
                             <FormControlLabel
                                 value={ethnicity}
                                 key={index}
-                                control={<Radio color="success" />}
+                                control={<Radio
+                                    sx={{
+                                         
+                                        "&.Mui-checked": {
+                                            color: "#275585",
+                                        },
+                                    }}
+                                />}
                                 label={
                                     <Typography style={{ fontSize: "19px" }}>
                                         {ethnicity}
@@ -215,7 +238,14 @@ function DemoSurvey({ nextPage, demoData, setDemoData }) {
                             <FormControlLabel
                                 value={educationLevel}
                                 key={index}
-                                control={<Radio color="success" />}
+                                control={<Radio
+                                    sx={{
+                                         
+                                        "&.Mui-checked": {
+                                            color: "#275585",
+                                        },
+                                    }}
+                                />}
                                 label={
                                     <Typography style={{ fontSize: "19px" }}>
                                         {educationLevel}

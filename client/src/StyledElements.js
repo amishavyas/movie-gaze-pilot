@@ -1,4 +1,4 @@
-import { Box, Button, Slider, Typography } from "@mui/material";
+import { Box, Button, Slider, Typography, TextField } from "@mui/material";
 import dartLogo from "./images/D-Pine_CMYK.png";
 import labLogo from "./images/lab-logo.png";
 import { styled } from "@mui/material/styles";
@@ -9,7 +9,7 @@ const Logos = () => {
         <Box
             style={{
                 display: "flex",
-                justifyContent: "center", 
+                justifyContent: "center",
                 paddingTop: "2%",
             }}
         >
@@ -47,7 +47,7 @@ const StyledBox = styledComponent.div`
     width: 45%;
 `;
 
-const StyledButton = ({ handleClick, text, color="#212528", buttonColor="#e4d09e" }) => {
+const StyledButton = ({ handleClick, text, color = "#212528", buttonColor = "#E4C988" }) => {
     return (
         <Box
             style={{
@@ -62,7 +62,7 @@ const StyledButton = ({ handleClick, text, color="#212528", buttonColor="#e4d09e
                 style={{
                     color: color,
                     fontSize: "15px",
-                    backgroundColor: buttonColor  
+                    backgroundColor: buttonColor
                 }}
             >
                 {text}
@@ -123,4 +123,35 @@ const Title = ({ text }) => {
     );
 };
 
-export { Logos, StyledBox, StyledButton, StyledSlider, Title };
+const StyledTextField = ({ value, onChange, ...props }) => {
+    return (
+        <TextField
+            variant="standard"
+            fullWidth
+            autoComplete="off"
+            inputProps={{
+                autoComplete: "off",
+                spellCheck: "false",
+            }}
+            value={value}
+            onChange={onChange}
+            {...props}
+            sx={{
+                "& .MuiInputBase-input": {
+                    fontSize: 19,
+                },
+                "& .MuiInput-underline:before": {
+                    borderBottomColor: "#A9D6F5",
+                },
+                "& .MuiInput-underline:hover:before": {
+                    borderBottomColor: "#A9D6F5",
+                },
+                "& .MuiInput-underline:after": {
+                    borderBottomColor: "#A9D6F5",
+                },
+            }}
+        />
+    );
+};
+
+export { Logos, StyledBox, StyledButton, StyledSlider, Title, StyledTextField };
