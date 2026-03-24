@@ -115,6 +115,7 @@ function Experiment() {
                 return <FullscreenVideoPlayer
                     nextPage={nextPage}
                     videoUrl="./movie.mp4"
+                    subjectData={subjectData}
                 />;
             case 7:
                 return (

@@ -4,7 +4,7 @@ import logging
 import subprocess
 import time
 from pathlib import Path
-
+from datetime import datetime
 import simpleobsws
 from pupil_labs.realtime_api.simple import discover_devices
 
@@ -76,7 +76,7 @@ def launch_obs():
     subprocess.Popen(["open", "-a", "OBS"])
 
 
-async def _obs_request(request_name):
+async def _obs_request(request_name, request_data=None):
     print("Connecting to OBS...", flush=True)
 
     params = simpleobsws.IdentificationParameters(
@@ -93,7 +93,8 @@ async def _obs_request(request_name):
     print("OBS connected", flush=True)
 
     try:
-        response = await ws.call(simpleobsws.Request(request_name))
+        request = simpleobsws.Request(request_name, request_data or {})
+        response = await ws.call(request)
         print(
             f"[OBS] {request_name} ok={response.ok()} data={response.responseData}",
             flush=True,
@@ -247,21 +248,44 @@ def stop_tracker_recording():
         }
 
 
-def start_obs_recording():
+def start_obs_recording(filename):
     launch_obs()
-    time.sleep(8)
+    time.sleep(5)
 
-    ok, data = asyncio.run(_obs_request("StartRecord"))
-    if not ok:
-        return {
-            "status": "error",
-            "message": f"OBS failed to start: {data}",
-        }
+    try:
+        print(f"[Flask] setting OBS filename: {filename}", flush=True)
 
-    return {"status": "started"}
+        ok, data = asyncio.run(
+            _obs_request(
+                "SetProfileParameter",
+                {
+                    "parameterCategory": "Output",
+                    "parameterName": "FilenameFormatting",
+                    "parameterValue": filename,
+                },
+            )
+        )
+
+        if not ok:
+            return {
+                "status": "error",
+                "message": f"Failed to set OBS filename: {data}",
+            }
+
+        ok, data = asyncio.run(_obs_request("StartRecord"))
+        if not ok:
+            return {
+                "status": "error",
+                "message": f"OBS failed to start: {data}",
+            }
+
+        return {"status": "started", "filename": filename}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 
-def start_all_recordings():
+def start_all_recordings(filename=None):
     if state["running"]:
         return {
             "status": "already_running",
@@ -272,6 +296,8 @@ def start_all_recordings():
     if state["device"] is None:
         return {"status": "error", "message": "No connected tracker"}
 
+    obs_filename = f"{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
     tracker_result = start_tracker_recording()
     if tracker_result["status"] == "error":
         return {
@@ -279,7 +305,7 @@ def start_all_recordings():
             "message": f"Tracker failed to start: {tracker_result['message']}",
         }
 
-    obs_result = start_obs_recording()
+    obs_result = start_obs_recording(obs_filename)
     if obs_result["status"] == "error":
         # Best effort rollback
         try:
@@ -293,6 +319,7 @@ def start_all_recordings():
         "status": "started",
         "connected_phone_name": state["phone_name"],
         "tracker_ip": state["ip"],
+        "obs_filename": obs_filename,
     }
 
 

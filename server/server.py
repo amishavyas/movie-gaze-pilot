@@ -7,6 +7,8 @@ from recording import (
     send_event_marker,
     check_tracker,
 )
+from datetime import datetime
+import re
 
 app = Flask(__name__)
 CORS(app)
@@ -34,7 +36,11 @@ def connect_tracker_route():
 
 @app.route("/start_recordings", methods=["POST"])
 def start_recordings():
-    return run_action(start_all_recordings, "start_recordings")
+    data = request.get_json(silent=True) or {}
+    print(data)
+    filename = data.get("filename")
+    print(f"[Flask] received filename={filename}", flush=True)
+    return run_action(lambda: start_all_recordings(filename), "start_recordings")
 
 
 @app.route("/start_video_event", methods=["POST"])

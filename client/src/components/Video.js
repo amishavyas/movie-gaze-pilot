@@ -3,7 +3,7 @@ import { Box } from "@mui/material";
 import { StyledButton } from "../StyledElements";
 
 
-export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
+export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData }) {
     const [phase, setPhase] = useState("preparing"); // preparing | countdown | playing | error
     const [countdown, setCountdown] = useState(5);
     const [error, setError] = useState("");
@@ -122,7 +122,11 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
         try {
             await safeEnterFullscreen();
 
-            const data = await post("http://localhost:5001/start_recordings");
+            const filename = `${subjectData.subID}_${subjectData.dyadID}_screen_recording`;
+
+            const data = await post("http://localhost:5001/start_recordings", {
+                filename,
+            });
 
             if (data.status === "started" || data.status === "already_running") {
                 startCountdown();
@@ -138,6 +142,22 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
     };
 
     useEffect(() => {
+        const root = document.documentElement;
+
+        const shouldHide = phase === "countdown" || phase === "playing";
+
+        if (shouldHide) {
+            root.classList.add("hide-cursor");
+        } else {
+            root.classList.remove("hide-cursor");
+        }
+
+        return () => {
+            root.classList.remove("hide-cursor");
+        };
+    }, [phase]);
+
+    useEffect(() => {
         if (phase !== "playing") return;
 
         videoRef.current?.play().catch((err) => {
@@ -150,6 +170,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
     useEffect(() => {
         return () => {
             if (timerRef.current) clearInterval(timerRef.current);
+            document.documentElement.classList.remove("hide-cursor");
         };
     }, []);
 
@@ -161,7 +182,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                 background: "black",
                 position: "relative",
                 overflow: "hidden",
-                cursor: "none",
+                cursor: phase === "countdown" || phase === "playing" ? "none" : "default",
             }}
         >
             {phase === "preparing" && (
@@ -178,7 +199,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                         handleClick={handleStart}
                         text="Click to play video"
                         fontSize="24px"
-                         
+
                     />
                 </Box>
             )}
@@ -229,6 +250,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                     height: "100vh",
                     objectFit: "contain",
                     opacity: phase === "playing" ? 1 : 0,
+                    cursor: "none",
                 }}
             />
         </div>
