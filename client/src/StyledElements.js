@@ -47,7 +47,14 @@ const StyledBox = styledComponent.div`
     width: 45%;
 `;
 
-const StyledButton = ({ handleClick, text, color = "#212528", buttonColor = "#E4C988" }) => {
+const StyledButton = ({
+    handleClick,
+    text,
+    color = "#212528",
+    buttonColor = "#E4C988",
+    fontSize = "15px",
+    fontWeight
+}) => {
     return (
         <Box
             style={{
@@ -61,8 +68,11 @@ const StyledButton = ({ handleClick, text, color = "#212528", buttonColor = "#E4
                 variant="contained"
                 style={{
                     color: color,
-                    fontSize: "15px",
-                    backgroundColor: buttonColor
+                    fontSize: fontSize,
+                    backgroundColor: buttonColor,
+                    whiteSpace: "nowrap",
+                    padding: "12px 28px",
+                    fontWeight: fontWeight
                 }}
             >
                 {text}

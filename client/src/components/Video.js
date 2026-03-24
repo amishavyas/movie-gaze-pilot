@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { Box } from "@mui/material";
+import { StyledButton } from "../StyledElements";
+
 
 export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
     const [phase, setPhase] = useState("preparing"); // preparing | countdown | playing | error
@@ -162,20 +165,22 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
             }}
         >
             {phase === "preparing" && (
-                <button
-                    onClick={handleStart}
-                    style={{
+                <Box
+                    sx={{
                         position: "absolute",
                         top: "50%",
                         left: "50%",
                         transform: "translate(-50%, -50%)",
-                        fontSize: "2rem",
-                        padding: "16px 32px",
                         zIndex: 10,
                     }}
                 >
-                    Start
-                </button>
+                    <StyledButton
+                        handleClick={handleStart}
+                        text="Click to play video"
+                        fontSize="24px"
+                         
+                    />
+                </Box>
             )}
 
             {phase === "countdown" && (

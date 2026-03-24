@@ -16,7 +16,7 @@ const randomQuestions = [
     "Are the characters discussing politics?",
     "Does the dark haired man standing in the doorframe make a convincing argument?",
     "Are the young woman and the blonde man related?",
-    "Will this movie have a happy ending?",
+    "Will there be a happy ending?",
 ];
 
 const shuffleArray = (array) => {
@@ -39,9 +39,7 @@ const PostVideoQuestions = ({ postVideoData, setPostVideoData, nextPage }) => {
     };
 
     const handleContinue = () => {
-        console.log(postVideoData[currentQuestion]); 
         if (!postVideoData[currentQuestion]) {
-            
             alert("Please provide a response to continue.");
             return;
         }
@@ -58,42 +56,87 @@ const PostVideoQuestions = ({ postVideoData, setPostVideoData, nextPage }) => {
             sx={{
                 minHeight: "100vh",
                 backgroundColor: "white",
-                paddingTop: "8vh",
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "center",
+                pt: "10vh",
+                px: 2,
             }}
         >
-            <Container maxWidth="md">
-                <Typography align="left" fontSize="21px">
-                    <strong>Please read the question below and respond carefully.</strong>
-                </Typography>
-
-                <Box sx={{ marginTop: 6 }}>
-                    <Typography component="h2" variant="h6" gutterBottom>
-                        {currentQuestion}
-                    </Typography>
-
-                    <RadioGroup
-                        row
-                        value={postVideoData[currentQuestion] || ""}
-                        onChange={(e) => handleChange(e.target.value)}
+            <Container maxWidth="lg">
+                <Box
+                    sx={{
+                        //maxWidth: 760,
+                        mx: "auto",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                    }}
+                >
+                    <Typography
                         sx={{
-                            "& .MuiFormControlLabel-label": {
-                                fontSize: "1.25rem",
-                            },
+                            width: "100%",
+                            fontSize: "1.65rem",
+                            lineHeight: 1.4,
+                            textAlign: "center",
+                            mb: 6,
+                            whiteSpace: "nowrap",
                         }}
                     >
-                        <FormControlLabel value="Yes" control={<Radio />} label="Yes" />
-                        <FormControlLabel value="No" control={<Radio />} label="No" />
-                    </RadioGroup>
-                </Box>
+                        <strong>Please carefully read the question below. Click on the Yes or No button to respond.</strong>
+                    </Typography>
 
-                <Box sx={{ marginTop: 6, textAlign: "center" }}>
-                    <StyledButton
-                        handleClick={handleContinue}
-                        text="NEXT"
-                        buttonColor="#E4C988"
+                    <Box
+                        sx={{
+                            width: "100%",
+                            maxWidth: 650,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            textAlign: "center",
+                        }}
                     >
-                        Continue
-                    </StyledButton>
+                        <Typography
+                            component="h2"
+                            sx={{
+                                fontSize: "1.5rem",
+                                fontWeight: 500,
+                                lineHeight: 1.4,
+                                mb: 4,
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {currentQuestion}
+                        </Typography>
+
+                         
+                        <RadioGroup
+                            row
+                            value={postVideoData[currentQuestion] || ""}
+                            onChange={(e) => handleChange(e.target.value)}
+                            sx={{
+                                justifyContent: "center",
+                                gap: 6,
+                                "& .MuiFormControlLabel-root": {
+                                    margin: 0,
+                                },
+                                "& .MuiFormControlLabel-label": {
+                                    fontSize: "1.25rem",
+                                },
+                            }}
+                        >
+                            <FormControlLabel value="Yes" control={<Radio />} label="Yes" />
+                            <FormControlLabel value="No" control={<Radio />} label="No" />
+                        </RadioGroup>
+                    </Box>
+
+                    <Box sx={{ mt: 8, display: "flex", justifyContent: "center" }}>
+                        <StyledButton
+                            handleClick={handleContinue}
+                            text="NEXT"
+                            buttonColor="#E4C988"
+                        />
+                    </Box>
                 </Box>
             </Container>
         </Box>

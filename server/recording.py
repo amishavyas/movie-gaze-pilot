@@ -8,7 +8,7 @@ from pathlib import Path
 import simpleobsws
 from pupil_labs.realtime_api.simple import discover_devices
 
-EXPECTED_PHONE_NAME = "THEIA"
+EXPECTED_PHONE_NAME = "IRIS"
 
 OBS_WS_URL = "ws://localhost:4455/"
 OBS_WS_PASSWORD = "Lm2SUK7JNbcMWCAI"
@@ -209,43 +209,42 @@ def start_tracker_recording():
     if state["device"] is None:
         return {"status": "error", "message": "No connected tracker"}
 
-    # Try a few likely method names depending on SDK version.
-    for method_name in ["recording_start", "start_recording"]:
-        result = _call_device_method(state["device"], method_name)
-        if result["ok"]:
-            print(f"[TRACKER] {method_name} succeeded", flush=True)
-            return {
-                "status": "started",
-                "connected_phone_name": state["phone_name"],
-                "tracker_ip": state["ip"],
-                "method": method_name,
-            }
+    try:
+        state["device"].recording_start()
+        print("[TRACKER] recording_start succeeded", flush=True)
 
-    return {
-        "status": "error",
-        "message": "No supported tracker start-recording method found",
-    }
+        return {
+            "status": "started",
+            "connected_phone_name": state["phone_name"],
+            "tracker_ip": state["ip"],
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+        }
 
 
 def stop_tracker_recording():
     if state["device"] is None:
         return {"status": "error", "message": "No connected tracker"}
 
-    for method_name in ["recording_stop", "stop_recording"]:
-        result = _call_device_method(state["device"], method_name)
-        if result["ok"]:
-            print(f"[TRACKER] {method_name} succeeded", flush=True)
-            return {
-                "status": "stopped",
-                "connected_phone_name": state["phone_name"],
-                "tracker_ip": state["ip"],
-                "method": method_name,
-            }
+    try:
+        state["device"].recording_stop_and_save()
+        print("[TRACKER] recording_stop_and_save succeeded", flush=True)
 
-    return {
-        "status": "error",
-        "message": "No supported tracker stop-recording method found",
-    }
+        return {
+            "status": "stopped",
+            "connected_phone_name": state["phone_name"],
+            "tracker_ip": state["ip"],
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+        }
 
 
 def start_obs_recording():
@@ -332,16 +331,18 @@ def stop_script():
 
     if state["running"]:
         try:
-            tracker_stop_result = stop_tracker_recording()
-        except Exception as e:
-            logger.warning(f"Tracker stop failed: {e}")
-
-        try:
             ok, data = asyncio.run(_obs_request("StopRecord"))
             if not ok:
                 logger.warning(f"OBS stop failed: {data}")
         except Exception as e:
             logger.warning(f"OBS stop request failed: {e}")
+
+        time.sleep(5)
+
+        try:
+            tracker_stop_result = stop_tracker_recording()
+        except Exception as e:
+            logger.warning(f"Tracker stop failed: {e}")
 
     if state["device"] is not None:
         try:

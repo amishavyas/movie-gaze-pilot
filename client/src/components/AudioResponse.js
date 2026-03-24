@@ -134,6 +134,7 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
                     </Typography>
 
                     <Box sx={{ display: "flex", justifyContent: "center", mb: 5 }}>
+                         
                         <IconButton
                             onClick={handleStart}
                             disabled={recording}
@@ -152,7 +153,11 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
                                 },
                             }}
                         >
+                            <br />
+                            <br /><br />
+                            <br />
                             <MicIconSVG />
+                             
                         </IconButton>
                     </Box>
 

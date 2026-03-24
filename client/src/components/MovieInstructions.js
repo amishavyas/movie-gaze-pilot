@@ -22,21 +22,20 @@ const MovieInstructions = ({ nextPage }) => {
                 <Typography component="h2" variant="h6" align="left">
                     <br />
                     
-                    You are all set to begin! Now, you are about to watch a short movie clip. This clip has no audio, so please
-                    don't worry about that. As you already know, your eyes will be recorded as you watch the clip.
+                    You are all set to begin! Now, you are about to watch a short video. This video has no audio, so please
+                    don't worry about that. The glasses you are wearing will record your eyes as you watch.
 
                     <br />
                     <br />
 
                     The glasses work best when you don't move around, so please try to remain still and don't move back and forth.
-                    Otherwise, you can relax and watch the movie as you naturally would.
+                    Otherwise, you can relax and watch the clip as you naturally would.
 
                     <br />
                     <br />
 
-                    After you are done watching the clip, we will ask you some questions about it.
-                    Please make sure to pay close attention.
-                    
+                    After you are done watching the clip, we will ask you some questions about it, so please make sure to pay close attention.
+
                 </Typography>
 
                 <StyledButton handleClick={nextPage} text="NEXT" buttonColor="#e4d09e" />

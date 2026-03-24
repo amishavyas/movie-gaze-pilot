@@ -19,7 +19,7 @@ const GlassesInstruction = ({ nextPage }) => {
                 <Typography component="h2" variant="h6" align="left">
                     <br />
                     <br />
-                    Thanks for your attention as you watched the clip. Next, we will ask you some questions to learn what you thought about it.
+                    Next, we will ask you some questions to learn what you thought about it.
                     For this portion of the study, you do not need to keep the glasses on.
                     <br />
                     <br />

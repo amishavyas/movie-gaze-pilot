@@ -19,12 +19,12 @@ function Debrief({ saveParticipantFiles }) {
             <Typography component="h2" variant="h6" align="left">
                 <br />
                 <br />
-                You are all done with the study.
-                Please proceed outside and check in with the experimenter to be debriefed.
+                You are all done with the study!
+                Please step outside and check in with the experimenter to be debriefed about the study.
                 <br />
                 <br />
-                If you have any questions or concerns, please feel free to ask the experimenter outside or
-                contact the lead researcher on this project: amisha.vyas@columbia.edu
+                If you have any questions or concerns, please feel free to ask the experimenter helping you today or
+                contact the lead researcher (Amisha Vyas) at amisha.vyas@columbia.edu
                 <br />
                 <br />
                 <br />

@@ -17,6 +17,7 @@ function Experiment() {
         subID: "",
         dyadID: "",
     });
+    const [responses, setResponses] = useState([]);
     const [postVideoData, setPostVideoData] = useState({
         "Have you watched this clip before?": "",
         "Are the blonde man with the mustache and the woman on the couch related?": "",
@@ -133,6 +134,7 @@ function Experiment() {
                         nextPage={nextPage}
                         recallInstructions={recallInstructions}
                         subjectData={subjectData}
+                        setResponses={setResponses}
                     />
                 );
             case 10:

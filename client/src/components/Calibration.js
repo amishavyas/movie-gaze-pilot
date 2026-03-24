@@ -66,8 +66,8 @@ export default function Calibration({ nextPage }) {
             style={{
                 width: "100vw",
                 height: "100vh",
-                backgroundColor: "black",
-                color: "white",
+                backgroundColor: "white",
+                color: "black",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

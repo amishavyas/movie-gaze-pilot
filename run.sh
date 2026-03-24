@@ -32,17 +32,19 @@ cd client || exit 1
 
 if [ ! -d "node_modules" ]; then
   echo "[INFO] Installing React packages..."
-  if [ -f "package-lock.json" ]; then
-    npm ci
-  else
-    npm install
-  fi
+  npm install
 else
   echo "[INFO] React packages already installed."
 fi
 
 (BROWSER=none npm start 2>&1 | sed 's/^/[React] /') &
 REACT_PID=$!
+
+echo "[INFO] Waiting for React to start..."
+sleep 1
+
+echo "[INFO] Opening Google Chrome at localhost:3000..."
+open -a "Google Chrome" "http://localhost:3000"
 
 cd .. || exit 1
 

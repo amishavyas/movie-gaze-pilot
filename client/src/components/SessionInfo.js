@@ -6,7 +6,7 @@ import {
 import { Logos, StyledButton, Title, StyledTextField } from "../StyledElements";
 
 function SessionInfo({ nextPage, subjectData, setSubjectData }) {
-    
+
     const beginStudy = () => {
         if (validateInputs()) {
             nextPage();
@@ -46,6 +46,7 @@ function SessionInfo({ nextPage, subjectData, setSubjectData }) {
                     <br />
                     <StyledTextField
                         value={subjectData.subID}
+                        placeholder="s000"
                         onChange={(e) =>
                             setSubjectData({
                                 ...subjectData,
@@ -61,6 +62,7 @@ function SessionInfo({ nextPage, subjectData, setSubjectData }) {
                     <br />
                     <StyledTextField
                         value={subjectData.dyadID}
+                        placeholder="d000"
                         onChange={(e) =>
                             setSubjectData({
                                 ...subjectData,
