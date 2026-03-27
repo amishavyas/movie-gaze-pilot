@@ -1,49 +1,28 @@
 import { useEffect, useRef, useState } from "react";
 import { Box } from "@mui/material";
-import { StyledButton } from "../StyledElements";
+import { post } from "./Post.js";
 
-
-export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData }) {
+export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
     const [phase, setPhase] = useState("preparing"); // preparing | countdown | playing | error
     const [countdown, setCountdown] = useState(5);
     const [error, setError] = useState("");
 
     const videoRef = useRef(null);
-    const startedRef = useRef(false);
     const markedStartRef = useRef(false);
     const finishedRef = useRef(false);
     const timerRef = useRef(null);
 
-    const post = async (url, body) => {
-        const res = await fetch(url, {
-            method: "POST",
-            headers: body ? { "Content-Type": "application/json" } : undefined,
-            body: body ? JSON.stringify(body) : undefined,
-        });
-
-        let data = {};
-        try {
-            data = await res.json();
-        } catch {
-            // ignore empty/non-json responses
+    useEffect(() => {
+        if (phase === "countdown" || phase === "playing") {
+            document.body.style.cursor = "none";
+        } else {
+            document.body.style.cursor = "default";
         }
 
-        if (!res.ok) {
-            throw new Error(data?.error || `Request failed: ${res.status}`);
-        }
-
-        return data;
-    };
-
-    const safeEnterFullscreen = async () => {
-        if (document.fullscreenElement) return;
-
-        try {
-            await document.documentElement.requestFullscreen();
-        } catch (err) {
-            throw new Error("Could not enter fullscreen. Start must come from a user click.");
-        }
-    };
+        return () => {
+            document.body.style.cursor = "default";
+        };
+    }, [phase]);
 
     const safeExitFullscreen = async () => {
         try {
@@ -51,7 +30,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
             if (document.visibilityState !== "visible") return;
             await document.exitFullscreen();
         } catch {
-            // ignore "Document not active" and related browser cleanup errors
+            // ignore browser cleanup errors
         }
     };
 
@@ -60,7 +39,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
         markedStartRef.current = true;
 
         try {
-            await post("http://localhost:5001/start_video_event", {
+            await post("/start_video_event", {
                 event: "video.start",
                 timestamp_iso: new Date().toISOString(),
             });
@@ -74,7 +53,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
         finishedRef.current = true;
 
         try {
-            await post("http://localhost:5001/end_video_event", {
+            await post("/end_video_event", {
                 event: "video.end",
                 timestamp_iso: new Date().toISOString(),
             });
@@ -83,18 +62,16 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
         }
 
         try {
-            await fetch("http://localhost:5001/stop_recordings", {
-                method: "POST",
-            });
+            await post("/stop_obs_recording");
         } catch (err) {
             console.error("stop_recordings failed:", err);
         }
 
-        await safeExitFullscreen();
-
         setTimeout(() => {
-            nextPage?.();
+            nextPage();
         }, 500);
+
+        await safeExitFullscreen();
     };
 
     const startCountdown = () => {
@@ -114,48 +91,13 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
         }, 1000);
     };
 
-    const handleStart = async () => {
-        if (startedRef.current) return;
-        startedRef.current = true;
-        setError("");
-
-        try {
-            await safeEnterFullscreen();
-
-            const filename = `${subjectData.subID}_${subjectData.dyadID}_screen_recording`;
-
-            const data = await post("http://localhost:5001/start_recordings", {
-                filename,
-            });
-
-            if (data.status === "started" || data.status === "already_running") {
-                startCountdown();
-            } else {
-                throw new Error(data?.error || "Permissions check failed");
-            }
-        } catch (err) {
-            console.error(err);
-            setError(err.message || "Failed to start");
-            setPhase("error");
-            startedRef.current = false;
-        }
-    };
-
     useEffect(() => {
-        const root = document.documentElement;
-
-        const shouldHide = phase === "countdown" || phase === "playing";
-
-        if (shouldHide) {
-            root.classList.add("hide-cursor");
-        } else {
-            root.classList.remove("hide-cursor");
-        }
+        startCountdown();
 
         return () => {
-            root.classList.remove("hide-cursor");
+            if (timerRef.current) clearInterval(timerRef.current);
         };
-    }, [phase]);
+    }, []);
 
     useEffect(() => {
         if (phase !== "playing") return;
@@ -166,13 +108,6 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
             setPhase("error");
         });
     }, [phase]);
-
-    useEffect(() => {
-        return () => {
-            if (timerRef.current) clearInterval(timerRef.current);
-            document.documentElement.classList.remove("hide-cursor");
-        };
-    }, []);
 
     return (
         <div
@@ -185,40 +120,59 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
                 cursor: phase === "countdown" || phase === "playing" ? "none" : "default",
             }}
         >
-            {phase === "preparing" && (
-                <Box
-                    sx={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        zIndex: 10,
+            {(phase === "countdown" || phase === "playing") && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        zIndex: 9999,
+                        cursor: "none",
+                        pointerEvents: "none",
+                        background: "transparent",
                     }}
-                >
-                    <StyledButton
-                        handleClick={handleStart}
-                        text="Click to play video"
-                        fontSize="24px"
-
-                    />
-                </Box>
+                />
             )}
 
             {phase === "countdown" && (
-                <div
-                    style={{
-                        color: "white",
-                        fontSize: "12rem",
-                        fontWeight: 700,
+                <Box
+                    sx={{
+                        width: "100vw",
+                        height: "100vh",
+                        bgcolor: "#555555",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
                         position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        zIndex: 10,
+                        inset: 0,
+                        zIndex: 10000,
+                        cursor: "none",
                     }}
                 >
-                    {countdown}
-                </div>
+                    <Box sx={{ position: "relative", width: 32, height: 32 }}>
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                top: "50%",
+                                left: 0,
+                                width: "100%",
+                                height: "4px",
+                                bgcolor: "black",
+                                transform: "translateY(-50%)",
+                            }}
+                        />
+                        <Box
+                            sx={{
+                                position: "absolute",
+                                left: "50%",
+                                top: 0,
+                                width: "4px",
+                                height: "100%",
+                                bgcolor: "black",
+                                transform: "translateX(-50%)",
+                            }}
+                        />
+                    </Box>
+                </Box>
             )}
 
             {phase === "error" && (
@@ -231,7 +185,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
                         left: "50%",
                         transform: "translate(-50%, -50%)",
                         textAlign: "center",
-                        zIndex: 10,
+                        zIndex: 10000,
                     }}
                 >
                     {error || "Something went wrong"}
@@ -243,13 +197,25 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage, subjectData 
                 src={videoUrl}
                 muted
                 playsInline
-                onPlay={markVideoStart}
                 onEnded={finishTask}
+                onTimeUpdate={(e) => {
+                    const t = e.target.currentTime;
+
+                    if (!markedStartRef.current && t >= 0.03) {
+                        markVideoStart();
+                    }
+
+                    if (t >= 10) {
+                        e.target.pause();
+                        finishTask();
+                    }
+                }}
                 style={{
                     width: "100vw",
                     height: "100vh",
                     objectFit: "contain",
                     opacity: phase === "playing" ? 1 : 0,
+                    pointerEvents: "none",
                     cursor: "none",
                 }}
             />

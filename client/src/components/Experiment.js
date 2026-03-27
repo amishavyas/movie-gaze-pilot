@@ -3,6 +3,7 @@ import AudioInstructions from "./AudioInstructions";
 import MovieInstructions from "./MovieInstructions";
 import DemoSurvey from "./DemoSurvey";
 import AudioResponse from "./AudioResponse";
+import RecallScreen from "./Audio";
 import Debrief from "./Debrief";
 import FullscreenVideoPlayer from "./Video";
 import BaselineSurvey from "./BaselineSurvey";
@@ -98,7 +99,7 @@ function Experiment() {
             case 2:
                 return <BaselineSurvey
                     surveyURL="https://cumc.co1.qualtrics.com/jfe/form/SV_8xkcx3bGu8vwbbM"
-                    participantID={100}
+                    subjectData={subjectData}
                     nextPage={nextPage}
                 />;
 
@@ -109,7 +110,9 @@ function Experiment() {
                 return <Calibration nextPage={nextPage} />;
 
             case 5:
-                return <MovieInstructions nextPage={nextPage} />;
+                return <MovieInstructions
+                    nextPage={nextPage}
+                    subjectData={subjectData} />;
 
             case 6:
                 return <FullscreenVideoPlayer
@@ -117,27 +120,31 @@ function Experiment() {
                     videoUrl="./movie.mp4"
                     subjectData={subjectData}
                 />;
+
+
             case 7:
-                return (
-                    <GlassesInstruction
-                        nextPage={nextPage}
-                    />
-                );
-            case 8:
                 return (
                     <AudioInstructions
                         nextPage={nextPage}
                     />
                 );
-            case 9:
+
+            case 8:
                 return (
-                    <AudioResponse
+                    <RecallScreen
                         nextPage={nextPage}
-                        recallInstructions={recallInstructions}
                         subjectData={subjectData}
                         setResponses={setResponses}
                     />
                 );
+            
+            case 9:
+                return (
+                    <GlassesInstruction
+                        nextPage={nextPage}
+                    />
+                );
+
             case 10:
                 return (
                     <PostVideoQuestions
@@ -146,6 +153,7 @@ function Experiment() {
                         setPostVideoData={setPostVideoData}
                     />
                 );
+
             case 11:
                 return (
                     <DemoSurvey
@@ -154,6 +162,7 @@ function Experiment() {
                         setDemoData={setDemoData}
                     />
                 );
+
             case 12:
                 return <Debrief
                     saveParticipantFiles={saveParticipantFiles}

@@ -1,8 +1,29 @@
 import React from "react";
 import { Box, Container, Typography } from "@mui/material";
 import { StyledButton, Title } from "../StyledElements";
+import { post } from "./Post.js";
 
-const MovieInstructions = ({ nextPage }) => {
+const MovieInstructions = ({ nextPage, subjectData }) => {
+
+    const handleNext = async () => {
+        try {
+            const filename = `${subjectData?.subID || ""}_${subjectData?.dyadID || ""}_screen_recording`;
+
+            const data = await post("/start_recordings", {
+                filename,
+            });
+
+            if (data.status === "started" || data.status === "already_running") {
+                nextPage();
+            } else {
+                throw new Error(data?.error || data?.message || "Failed to start recordings");
+            }
+        } catch (err) {
+            console.error(err);
+             
+        }
+    };
+
     return (
         <Box
             sx={{
@@ -22,13 +43,13 @@ const MovieInstructions = ({ nextPage }) => {
                 <Typography component="h2" variant="h6" align="left">
                     <br />
                     
-                    You are all set to begin! Now, you are about to watch a short video. This video has no audio, so please
-                    don't worry about that. The glasses you are wearing will record your eyes as you watch.
+                    You are all set to begin! Now, you are about to watch a short video clip. This clip has no sound, so please
+                    don't worry about that. 
 
                     <br />
                     <br />
 
-                    The glasses work best when you don't move around, so please try to remain still and don't move back and forth.
+                   The glasses you are wearing will record your eyes as you watch. The glasses work best when you don't move around, so please try to remain still.
                     Otherwise, you can relax and watch the clip as you naturally would.
 
                     <br />
@@ -36,9 +57,20 @@ const MovieInstructions = ({ nextPage }) => {
 
                     After you are done watching the clip, we will ask you some questions about it, so please make sure to pay close attention.
 
+                    <br />
+                    <br />
+
+                    On the next page, you will see a cross on the screen like the one just saw.
+                    Keep your eyes focused on the cross. The movie will play automatically. 
+
+                    <br />
+                    <br />
+
+                    Press NEXT to begin. 
+
                 </Typography>
 
-                <StyledButton handleClick={nextPage} text="NEXT" buttonColor="#e4d09e" />
+                <StyledButton handleClick={handleNext} text="NEXT" buttonColor="#e4d09e" />
             </Container>
         </Box>
     );

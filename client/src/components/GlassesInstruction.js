@@ -3,6 +3,8 @@ import { Box, Container, Typography } from "@mui/material";
 import { StyledButton, Title } from "../StyledElements";
 
 const GlassesInstruction = ({ nextPage }) => {
+
+
     return (
         <Box
             sx={{
@@ -16,10 +18,11 @@ const GlassesInstruction = ({ nextPage }) => {
         >
             <Container component="main" maxWidth="md" align="center">
                 <Title text="INSTRUCTIONS" />
+
                 <Typography component="h2" variant="h6" align="left">
                     <br />
                     <br />
-                    Next, we will ask you some questions to learn what you thought about it.
+                    Next, we will ask you some Yes or No questions about the video.
                     For this portion of the study, you do not need to keep the glasses on.
                     <br />
                     <br />
@@ -29,7 +32,7 @@ const GlassesInstruction = ({ nextPage }) => {
                     </strong>
                     <br />
                     <br />
-                    When you are ready, click on NEXT to continue. 
+                    Press NEXT when you are ready to continue. 
                 </Typography>
 
                 <StyledButton

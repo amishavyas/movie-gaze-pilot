@@ -10,6 +10,24 @@ function MicIconSVG() {
     );
 }
 
+async function post(url, body = {}) {
+    const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+        throw new Error(data?.error || data?.message || `Request failed: ${res.status}`);
+    }
+
+    return data;
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export default function AudioResponse({ subjectData, nextPage, setResponses }) {
     const [recording, setRecording] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -17,82 +35,135 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
     const mediaRecorderRef = useRef(null);
     const chunksRef = useRef([]);
     const animationRef = useRef(null);
+    const trackerStartedRef = useRef(false);
+    const endedRef = useRef(false);
 
     const RECORD_DURATION = 180;
+
+    // useEffect(() => {
+    //     const startTrackerRecording = async () => {
+    //         if (trackerStartedRef.current) return;
+    //         trackerStartedRef.current = true;
+
+    //         try {
+    //             const filename = `${subjectData.subID}_${subjectData.dyadID}_recall`;
+    //             await post("http://localhost:5001/start_tracker_recording", { filename });
+    //             console.log("Tracker recording started");
+    //         } catch (err) {
+    //             console.error("Failed to start tracker recording:", err);
+    //         }
+    //     };
+
+    //     startTrackerRecording();
+
+    //     return () => {
+    //         if (animationRef.current) {
+    //             cancelAnimationFrame(animationRef.current);
+    //         }
+    //     };
+    // }, [subjectData.subID, subjectData.dyadID]);
+
+    const finishRecall = async () => {
+        if (endedRef.current) return;
+        endedRef.current = true;
+
+        try {
+            await post("http://localhost:5001/send_event_marker", {
+                event: "recall.end",
+                timestamp_iso: new Date().toISOString(),
+            });
+            console.log("recall.end sent");
+        } catch (err) {
+            console.error("Failed to send recall.end:", err);
+        }
+
+        try {
+            await sleep(3000);
+            await post("http://localhost:5001/stop_tracker_recording");
+            console.log("Tracker recording stopped");
+        } catch (err) {
+            console.error("Failed to stop tracker recording:", err);
+        }
+
+        nextPage();
+    };
 
     const handleStart = async () => {
         if (recording) return;
 
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        try {
+            await post("http://localhost:5001/send_event_marker", {
+                event: "recall.start",
+                timestamp_iso: new Date().toISOString(),
+            });
 
-        const mediaRecorder = new MediaRecorder(stream, {
-            mimeType: "audio/webm;codecs=opus",
-        });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-        mediaRecorderRef.current = mediaRecorder;
-        chunksRef.current = [];
+            const mediaRecorder = new MediaRecorder(stream, {
+                mimeType: "audio/webm;codecs=opus",
+            });
 
-        mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) chunksRef.current.push(e.data);
-        };
+            mediaRecorderRef.current = mediaRecorder;
+            chunksRef.current = [];
 
-        mediaRecorder.onstop = async () => {
-            stream.getTracks().forEach((t) => t.stop());
-            setRecording(false);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunksRef.current.push(e.data);
+            };
 
-            const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-            const arrayBuffer = await blob.arrayBuffer();
+            mediaRecorder.onstop = async () => {
+                try {
+                    stream.getTracks().forEach((t) => t.stop());
+                    setRecording(false);
 
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+                    const arrayBuffer = await blob.arrayBuffer();
 
-            const channelData = audioBuffer.getChannelData(0);
-            const int16Data = new Int16Array(channelData.length);
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-            for (let i = 0; i < channelData.length; i++) {
-                int16Data[i] = Math.max(-1, Math.min(1, channelData[i])) * 0x7fff;
-            }
+                    const channelData = audioBuffer.getChannelData(0);
+                    const int16Data = new Int16Array(channelData.length);
 
-            const wav = new WaveFile();
-            wav.fromScratch(1, audioBuffer.sampleRate, "16", int16Data);
-            const wavBlob = new Blob([wav.toBuffer()], { type: "audio/wav" });
+                    for (let i = 0; i < channelData.length; i++) {
+                        int16Data[i] = Math.max(-1, Math.min(1, channelData[i])) * 0x7fff;
+                    }
 
-            const url = URL.createObjectURL(wavBlob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${subjectData.subID}_${subjectData.dyadID}_recall.wav`;
-            a.click();
-            URL.revokeObjectURL(url);
+                    const wav = new WaveFile();
+                    wav.fromScratch(1, audioBuffer.sampleRate, "16", int16Data);
 
-            setResponses((prev) => [...prev, { audio: wavBlob }]);
-            nextPage();
-        };
+                    const wavBlob = new Blob([wav.toBuffer()], { type: "audio/wav" });
 
-        mediaRecorder.start();
-        setRecording(true);
-        setProgress(0);
+                    setResponses((prev) => [...prev, { audio: wavBlob }]);
 
-        const startTime = Date.now();
+                    await finishRecall();
+                } catch (err) {
+                    console.error("Failed during recall stop flow:", err);
+                    await finishRecall();
+                }
+            };
 
-        const animate = () => {
-            const elapsed = (Date.now() - startTime) / 1000;
-            setProgress(Math.min((elapsed / RECORD_DURATION) * 100, 100));
+            mediaRecorder.start();
+            setRecording(true);
+            setProgress(0);
 
-            if (elapsed < RECORD_DURATION) {
-                animationRef.current = requestAnimationFrame(animate);
-            } else {
-                mediaRecorder.stop();
-            }
-        };
+            const startTime = Date.now();
 
-        animationRef.current = requestAnimationFrame(animate);
+            const animate = () => {
+                const elapsed = (Date.now() - startTime) / 1000;
+                setProgress(Math.min((elapsed / RECORD_DURATION) * 100, 100));
+
+                if (elapsed < RECORD_DURATION) {
+                    animationRef.current = requestAnimationFrame(animate);
+                } else {
+                    mediaRecorder.stop();
+                }
+            };
+
+            animationRef.current = requestAnimationFrame(animate);
+        } catch (err) {
+            console.error("Failed to start recall recording:", err);
+        }
     };
-
-    useEffect(() => {
-        return () => {
-            if (animationRef.current) cancelAnimationFrame(animationRef.current);
-        };
-    }, []);
 
     return (
         <Box
@@ -100,7 +171,7 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
                 minHeight: "100vh",
                 display: "flex",
                 justifyContent: "flex-start",
-                alignItems: "top",
+                alignItems: "flex-start",
                 backgroundColor: "white",
                 pt: "10vh",
                 px: 3,
@@ -112,11 +183,7 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
                         component="h2"
                         variant="h6"
                         align="left"
-                        sx={{
-                            lineHeight: 1.7,
-                            fontWeight: 400,
-                            mb: 5,
-                        }}
+                        sx={{ lineHeight: 1.7, fontWeight: 400, mb: 5 }}
                     >
                         <strong>
                             What do you think the story is about? We are also interested in what
@@ -134,7 +201,6 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
                     </Typography>
 
                     <Box sx={{ display: "flex", justifyContent: "center", mb: 5 }}>
-                         
                         <IconButton
                             onClick={handleStart}
                             disabled={recording}
@@ -153,11 +219,7 @@ export default function AudioResponse({ subjectData, nextPage, setResponses }) {
                                 },
                             }}
                         >
-                            <br />
-                            <br /><br />
-                            <br />
                             <MicIconSVG />
-                             
                         </IconButton>
                     </Box>
 

@@ -1,11 +1,12 @@
 import React, { useEffect } from "react";
 
-const BaselineSurvey = ({ surveyURL, participantID, nextPage }) => {
+const BaselineSurvey = ({ surveyURL, subjectData, nextPage }) => {
     useEffect(() => {
         const handleMessage = (event) => {
-
-            // Qualtrics automatically sends a "QualtricsEOS|" message when the survey ends
-            if (typeof event.data === "string" && event.data.startsWith("QualtricsEOS|")) {
+            if (
+                typeof event.data === "string" &&
+                event.data.startsWith("QualtricsEOS|")
+            ) {
                 nextPage();
             }
         };
@@ -14,9 +15,8 @@ const BaselineSurvey = ({ surveyURL, participantID, nextPage }) => {
         return () => window.removeEventListener("message", handleMessage);
     }, [nextPage]);
 
-
-
-    const embedURL = `${surveyURL}?participantID=${participantID}`;
+    const embedURL =
+        `${surveyURL}?subID=${encodeURIComponent(subjectData.subID)}&dyadID=${encodeURIComponent(subjectData.dyadID)}`;
 
     return (
         <div style={{ width: "100%", height: "100vh", border: "none" }}>

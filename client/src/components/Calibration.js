@@ -15,7 +15,6 @@ export default function Calibration({ nextPage }) {
                 });
 
                 const data = await res.json();
-                console.log("connect_tracker:", data);
 
                 if (!mounted) return;
 
@@ -66,7 +65,7 @@ export default function Calibration({ nextPage }) {
             style={{
                 width: "100vw",
                 height: "100vh",
-                backgroundColor: "white",
+                backgroundColor: "#555555",
                 color: "black",
                 display: "flex",
                 alignItems: "center",
@@ -80,12 +79,33 @@ export default function Calibration({ nextPage }) {
             ) : (
                 <div
                     style={{
-                        fontSize: "6rem",
-                        lineHeight: 1,
-                        userSelect: "none",
+                        position: "relative",
+                        width: 32,
+                        height: 32,
                     }}
                 >
-                    +
+                    <div
+                        style={{
+                            position: "absolute",
+                            top: "50%",
+                            left: 0,
+                            width: "100%",
+                            height: "4",
+                            backgroundColor: "black",
+                            transform: "translateY(-50%)",
+                        }}
+                    />
+                    <div
+                        style={{
+                            position: "absolute",
+                            left: "50%",
+                            top: 0,
+                            width: "4px",
+                            height: "100%",
+                            backgroundColor: "black",
+                            transform: "translateX(-50%)",
+                        }}
+                    />
                 </div>
             )}
         </div>

@@ -8,7 +8,7 @@ from datetime import datetime
 import simpleobsws
 from pupil_labs.realtime_api.simple import discover_devices
 
-EXPECTED_PHONE_NAME = "IRIS"
+EXPECTED_PHONE_NAME = "THEIA"
 
 OBS_WS_URL = "ws://localhost:4455/"
 OBS_WS_PASSWORD = "Lm2SUK7JNbcMWCAI"
@@ -353,6 +353,37 @@ def send_event_marker(name):
     return {"status": "ok", "event": name}
 
 
+def stop_obs_recording():
+    if not state["running"]:
+        return {
+            "status": "error",
+            "message": "OBS recording is not marked as running",
+        }
+
+    try:
+        print("[OBS] attempting StopRecord", flush=True)
+        ok, data = asyncio.run(_obs_request("StopRecord"))
+        print(f"[OBS] StopRecord ok={ok} data={data}", flush=True)
+
+        if not ok:
+            return {
+                "status": "error",
+                "message": str(data),
+            }
+
+        return {
+            "status": "stopped",
+            "obs_result": data,
+        }
+
+    except Exception as e:
+        print(f"[OBS] StopRecord exception: {e}", flush=True)
+        return {
+            "status": "error",
+            "message": str(e),
+        }
+
+
 def stop_script():
     tracker_stop_result = None
 
@@ -370,12 +401,6 @@ def stop_script():
             tracker_stop_result = stop_tracker_recording()
         except Exception as e:
             logger.warning(f"Tracker stop failed: {e}")
-
-    if state["device"] is not None:
-        try:
-            state["device"].close()
-        except Exception:
-            pass
 
     result = {
         "status": "stopped",
