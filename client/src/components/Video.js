@@ -204,11 +204,6 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                     if (!markedStartRef.current && t >= 0.03) {
                         markVideoStart();
                     }
-
-                    if (t >= 10) {
-                        e.target.pause();
-                        finishTask();
-                    }
                 }}
                 style={{
                     width: "100vw",
