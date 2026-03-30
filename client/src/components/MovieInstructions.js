@@ -1,4 +1,4 @@
-import React from "react";
+import { React, useEffect } from "react";
 import { Box, Container, Typography } from "@mui/material";
 import { StyledButton, Title } from "../StyledElements";
 import { post } from "./Post.js";
@@ -20,9 +20,17 @@ const MovieInstructions = ({ nextPage, subjectData }) => {
             }
         } catch (err) {
             console.error(err);
-             
+
         }
     };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            handleNext();
+        }, 40000);
+
+        return () => clearTimeout(timer);
+    }, []);
 
     return (
         <Box
@@ -42,14 +50,14 @@ const MovieInstructions = ({ nextPage, subjectData }) => {
                 <Title text="INSTRUCTIONS" />
                 <Typography component="h2" variant="h6" align="left">
                     <br />
-                    
+
                     You are all set to begin! Now, you are about to watch a short video clip. This clip has no sound, so please
-                    don't worry about that. 
+                    don't worry about that.
 
                     <br />
                     <br />
 
-                   The glasses you are wearing will record your eyes as you watch. The glasses work best when you don't move around, so please try to remain still.
+                    The glasses you are wearing will record your eyes as you watch. The glasses work best when you don't move around, so please try to remain still.
                     Otherwise, you can relax and watch the clip as you naturally would.
 
                     <br />
@@ -61,16 +69,16 @@ const MovieInstructions = ({ nextPage, subjectData }) => {
                     <br />
 
                     On the next page, you will see a cross on the screen like the one just saw.
-                    Keep your eyes focused on the cross. The movie will play automatically. 
+                    Keep your eyes focused on the cross. The movie will play shortly on its own - make sure to
+                    stay still and pay close attention.
 
                     <br />
                     <br />
 
-                    Press NEXT to begin. 
+
 
                 </Typography>
 
-                <StyledButton handleClick={handleNext} text="NEXT" buttonColor="#e4d09e" />
             </Container>
         </Box>
     );

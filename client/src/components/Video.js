@@ -13,16 +13,33 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
     const timerRef = useRef(null);
 
     useEffect(() => {
-        if (phase === "countdown" || phase === "playing") {
-            document.body.style.cursor = "none";
-        } else {
-            document.body.style.cursor = "default";
-        }
+        const hideCursor = () => {
+            document.body.classList.add("hide-cursor");
+            document.documentElement.classList.add("hide-cursor");
+            document.fullscreenElement?.classList.add("hide-cursor");
+        };
+
+        const showCursor = () => {
+            document.body.classList.remove("hide-cursor");
+            document.documentElement.classList.remove("hide-cursor");
+            document.fullscreenElement?.classList.remove("hide-cursor");
+        };
+
+        hideCursor();
+
+        const rehider = () => hideCursor();
+
+        window.addEventListener("mousemove", rehider, true);
+        document.addEventListener("fullscreenchange", rehider, true);
+        window.addEventListener("focus", rehider, true);
 
         return () => {
-            document.body.style.cursor = "default";
+            window.removeEventListener("mousemove", rehider, true);
+            document.removeEventListener("fullscreenchange", rehider, true);
+            window.removeEventListener("focus", rehider, true);
+            showCursor();
         };
-    }, [phase]);
+    }, []);
 
     const safeExitFullscreen = async () => {
         try {
@@ -40,7 +57,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
 
         try {
             await post("/start_video_event", {
-                event: "video.start",
+                event: "start.video",
                 timestamp_iso: new Date().toISOString(),
             });
         } catch (err) {
@@ -54,7 +71,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
 
         try {
             await post("/end_video_event", {
-                event: "video.end",
+                event: "end.video",
                 timestamp_iso: new Date().toISOString(),
             });
         } catch (err) {
@@ -117,7 +134,6 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                 background: "black",
                 position: "relative",
                 overflow: "hidden",
-                cursor: phase === "countdown" || phase === "playing" ? "none" : "default",
             }}
         >
             {(phase === "countdown" || phase === "playing") && (
@@ -126,7 +142,6 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                         position: "fixed",
                         inset: 0,
                         zIndex: 9999,
-                        cursor: "none",
                         pointerEvents: "none",
                         background: "transparent",
                     }}
@@ -145,7 +160,7 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                         position: "absolute",
                         inset: 0,
                         zIndex: 10000,
-                        cursor: "none",
+
                     }}
                 >
                     <Box sx={{ position: "relative", width: 32, height: 32 }}>
@@ -211,7 +226,6 @@ export default function FullscreenVideoPlayer({ videoUrl, nextPage }) {
                     objectFit: "contain",
                     opacity: phase === "playing" ? 1 : 0,
                     pointerEvents: "none",
-                    cursor: "none",
                 }}
             />
         </div>

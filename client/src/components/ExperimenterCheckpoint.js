@@ -28,7 +28,7 @@ const ExperimenterCheckpoint = ({ nextPage }) => {
 
                 <StyledButton
                     handleClick={nextPage}
-                    text="Next"
+                    text="DO NOT PRESS THIS BUTTON"
                     buttonColor="#e4d09e"
                 />
             </Container>

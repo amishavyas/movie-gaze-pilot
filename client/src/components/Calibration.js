@@ -47,6 +47,18 @@ export default function Calibration({ nextPage }) {
     }, []);
 
     useEffect(() => {
+        document.body.style.cursor = "none";
+        document.documentElement.style.cursor = "none";
+        document.body.classList.add("hide-cursor");
+
+        return () => {
+            document.body.style.cursor = "default";
+            document.documentElement.style.cursor = "default";
+            document.body.classList.remove("hide-cursor");
+        };
+    }, []);
+
+    useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === "Enter" && ready) {
                 nextPage();
@@ -90,7 +102,7 @@ export default function Calibration({ nextPage }) {
                             top: "50%",
                             left: 0,
                             width: "100%",
-                            height: "4",
+                            height: "4px",
                             backgroundColor: "black",
                             transform: "translateY(-50%)",
                         }}

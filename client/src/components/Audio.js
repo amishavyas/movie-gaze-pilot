@@ -72,33 +72,39 @@ export default function RecallScreen({ nextPage, setResponses, subjectData }) {
                         const webmBlob = new Blob(chunksRef.current, { type: "audio/webm" });
                         const arrayBuffer = await webmBlob.arrayBuffer();
 
-                        const audioCtx =
-                            new (window.AudioContext || window.webkitAudioContext)();
+                        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
                         const channelData = audioBuffer.getChannelData(0);
                         const int16Data = new Int16Array(channelData.length);
 
                         for (let i = 0; i < channelData.length; i++) {
-                            int16Data[i] =
-                                Math.max(-1, Math.min(1, channelData[i])) * 0x7fff;
+                            int16Data[i] = Math.max(-1, Math.min(1, channelData[i])) * 0x7fff;
                         }
 
                         const wav = new WaveFile();
                         wav.fromScratch(1, audioBuffer.sampleRate, "16", int16Data);
 
                         const wavBlob = new Blob([wav.toBuffer()], { type: "audio/wav" });
-                        const filename = `${subjectData.subID}_${subjectData.dyadID}_recall.wav`;
+                        const filename = `${subjectData.subID}_${subjectData.dyadID}_laptop_recall.wav`;
 
-                        if (isMounted) {
-                            setResponses((prev) => [
-                                ...prev,
-                                {
-                                    audio: wavBlob,
-                                    filename,
-                                },
-                            ]);
-                        }
+                        // auto-download wav
+                        const url = URL.createObjectURL(wavBlob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+
+                        setResponses((prev) => [
+                            ...prev,
+                            {
+                                audio: wavBlob,
+                                filename,
+                            },
+                        ]);
 
                         await audioCtx.close();
 
@@ -124,25 +130,19 @@ export default function RecallScreen({ nextPage, setResponses, subjectData }) {
                             post("http://localhost:5001/stop_tracker_recording"),
                             new Promise((_, reject) =>
                                 setTimeout(
-                                    () =>
-                                        reject(
-                                            new Error("stop_tracker_recording timed out")
-                                        ),
+                                    () => reject(new Error("stop_tracker_recording timed out")),
                                     5000
                                 )
                             ),
                         ]);
 
-                        if (isMounted) {
-                            nextPage();
-                        }
+                        await sleep(500);
+                        nextPage();
+
                     } catch (err) {
                         console.error("Recall stop flow failed:", err);
-
-                        if (isMounted) {
-                            await sleep(1000);
-                            nextPage();
-                        }
+                        await sleep(1000);
+                        nextPage();
                     }
                 };
 
@@ -153,8 +153,12 @@ export default function RecallScreen({ nextPage, setResponses, subjectData }) {
 
                 recorder.start();
 
-                timeoutRef.current = setTimeout(() => {
+                timeoutRef.current = setTimeout(async () => {
                     if (recorder.state !== "inactive") {
+                        await post("http://localhost:5001/send_event_marker", {
+                            event: "end.recall",
+                            timestamp_iso: new Date().toISOString(),
+                        });
                         recorder.stop();
                     }
                 }, RECORD_MS);

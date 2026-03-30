@@ -36,7 +36,7 @@ state = {
 }
 
 
-def find_tracker(timeout=10.0):
+def find_tracker(timeout=15.0):  # 20
     print("Searching for devices...", flush=True)
 
     devices = discover_devices(search_duration_seconds=timeout)
