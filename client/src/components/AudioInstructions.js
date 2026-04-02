@@ -67,16 +67,20 @@ const AudioInstructions = ({ nextPage }) => {
                     <br />
                     <br />
                     <strong>
-                        What do you think the story is about? We are also interested in what
-                        you remember from the video. In your response, you can talk about
+                        What do you think the story is about? In your response, you can talk about
                         characters, events, your opinions, and anything else that comes to
-                        mind. Try to fill the whole three minutes, and remember that there are no
+                        mind. For example, you can consider the setting, what you think the characters were doing,
+                        what/how they were thinking or feeling, and what their relationships moght be to one another.
+
+                        <br />
+                        <br />
+                        Try to fill the whole three minutes, and remember that there are no
                         wrong answers.
                     </strong>
                     <br />
                     <br />
                     On the following page, you will see a cross on the screen.
-                    <br/>
+                    <br />
                     <strong style={{ color: "#ad1313" }}> Please keep your eyes focused on the cross the whole time and speak until the screen says "Done!". </strong>
                     <br />
                     <br />
@@ -84,7 +88,7 @@ const AudioInstructions = ({ nextPage }) => {
 
                     <br />
                     <br />
-                    Press <strong>NEXT</strong> when you are ready. The recording will begin automatically. 
+                    Press <strong>NEXT</strong> when you are ready. The recording will begin automatically.
                 </Typography>
 
                 {error && (
